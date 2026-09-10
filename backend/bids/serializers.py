@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import Bid,BidDocument
 class BidDocumentSerializer(serializers.ModelSerializer):
     class Meta:
-        model=BidDocument; fields=["id","name","file","uploaded_at"]
+        model=BidDocument; fields=["id","bid","name","file","uploaded_at"]
+        read_only_fields=["uploaded_at"]
 class BidSerializer(serializers.ModelSerializer):
     documents=BidDocumentSerializer(many=True,read_only=True)
     class Meta:

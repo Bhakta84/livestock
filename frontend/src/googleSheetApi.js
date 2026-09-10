@@ -94,6 +94,31 @@ export const createBid = (token, payload) => {
 };
 export const saveBidItems = (token, payload) => request(`/bids/${payload.bid_id}/`, { method: "PATCH", token, body: payload });
 export const submitBid = (token, id) => request(`/bids/${id}/submit/`, { method: "POST", token });
-export const uploadDocument = (token, payload) => request(`/bids/${payload.parent_id}/documents/`, { method: "POST", token, body: payload });
+export const uploadDocument = async (token, payload) => {
+  const form = new FormData();
+  form.append("bid", String(payload.parent_id));
+  form.append("name", payload.name);
+  form.append("file", payload.file);
+  const response = await fetch(`${API_BASE}/bids/documents/`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    const error = new Error(`Bid document upload failed with HTTP ${response.status}. The server returned HTML instead of JSON.`);
+    error.status = response.status;
+    throw error;
+  }
+  if (!response.ok) {
+    const error = new Error(errorMessage(data, "Bid document upload failed"));
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+};
 export const createTender = (token, payload) => request("/tenders/", { method: "POST", token, body: payload });
 export const publishTender = (token, id) => request(`/tenders/${id}/publish/`, { method: "POST", token });
