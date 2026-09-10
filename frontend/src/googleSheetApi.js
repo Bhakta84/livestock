@@ -5,6 +5,7 @@ const asArray = (data, fallback = []) => {
   if (Array.isArray(data?.results)) return data.results;
   if (Array.isArray(data?.tenders)) return data.tenders;
   if (Array.isArray(data?.bids)) return data.bids;
+  if (data && typeof data === "object" && Array.isArray(data.data)) return data.data;
   return fallback;
 };
 
