@@ -34,6 +34,19 @@ class Bid(models.Model):
         self.status="SUBMITTED"; self.submitted_at=timezone.now(); self.save()
     def __str__(self): return self.reference
 
+class BidItem(models.Model):
+    bid=models.ForeignKey(Bid,on_delete=models.CASCADE,related_name="items")
+    tender_item=models.ForeignKey("tenders.TenderItem",on_delete=models.SET_NULL,null=True,blank=True,related_name="bid_items")
+    line_no=models.PositiveIntegerField(default=1)
+    description=models.CharField(max_length=500)
+    unit=models.CharField(max_length=50,blank=True)
+    quantity=models.DecimalField(max_digits=14,decimal_places=2,default=0)
+    rate=models.DecimalField(max_digits=14,decimal_places=2,default=0)
+    amount=models.DecimalField(max_digits=14,decimal_places=2,default=0)
+
+    class Meta:
+        ordering=["line_no","id"]
+
 class BidDocument(models.Model):
     bid=models.ForeignKey(Bid,on_delete=models.CASCADE,related_name="documents")
     name=models.CharField(max_length=255)

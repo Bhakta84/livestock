@@ -112,7 +112,7 @@ export const createBid = (token, payload) => {
   delete requestBody.tender_id;
   return request("/bids/", { method: "POST", token, body: requestBody });
 };
-export const saveBidItems = (token, payload) => request(`/bids/${payload.bid_id}/`, { method: "PATCH", token, body: payload });
+export const saveBidItems = (token, payload) => request(`/bids/${payload.bid_id}/items/`, { method: "POST", token, body: payload });
 export const submitBid = (token, id) => request(`/bids/${id}/submit/`, { method: "POST", token });
 export const uploadDocument = async (token, payload) => {
   const form = new FormData();

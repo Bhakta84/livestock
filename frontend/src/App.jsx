@@ -50,10 +50,11 @@ function App(){
  </main></>}
 
 function TenderView({tender,bid,token,onBack,onParticipate,onBid}){
- const [items,setItems]=useState(tender.boq?.items||[]),[rates,setRates]=useState({}),[files,setFiles]=useState([]),[msg,setMsg]=useState("");
+ const [items,setItems]=useState(tender.items||[]),[rates,setRates]=useState({}),[files,setFiles]=useState([]),[msg,setMsg]=useState("");
+ useEffect(()=>{if(bid?.items?.length)setRates(Object.fromEntries(bid.items.map(item=>[item.tender_item||item.id,item.rate])))},[bid]);
  const total=items.reduce((s,x)=>s+(Number(rates[x.id]||0)*Number(x.quantity||0)),0);
  const makeBid=async()=>{try{await onParticipate()}catch(e){setMsg(e.message)}};
- const save=async()=>{try{const b=await api.saveBidItems(token,{bid_id:bid.id,items:items.map(x=>({boq_item_id:x.id,quantity:x.quantity,rate:Number(rates[x.id]||0),amount:Number(rates[x.id]||0)*Number(x.quantity||0)}))});onBid(b);setMsg("BOQ saved")}catch(e){setMsg(e.message)}};
+ const save=async()=>{try{const b=await api.saveBidItems(token,{bid_id:bid.id,items:items.map(x=>({boq_item_id:x.id,description:x.description,unit:x.unit,quantity:x.quantity,rate:Number(rates[x.id]||0),amount:Number(rates[x.id]||0)*Number(x.quantity||0)}))});onBid(b);setMsg("BOQ saved") }catch(e){setMsg(e.message)}};
  const upload=async e=>{const file=e.target.files[0];if(!file||!bid)return;try{const d=await api.uploadDocument(token,{parent_id:bid.id,name:file.name,file});setFiles([...files,d]);setMsg("Bid document uploaded") }catch(x){setMsg(x.message)}};
  const submit=async()=>{try{const b=await api.submitBid(token,bid.id);onBid(b);setMsg("Bid submitted successfully")}catch(e){setMsg(e.message)}};
  return <section className="card"><button onClick={onBack}>← Back</button><h2>{tender.title}</h2><p><b>{tender.tender_id}</b> · {tender.category} · {tender.location}</p><p>{tender.description}</p><h3>Tender Documents</h3><ul>{(tender.documents||[]).map(d=><li key={d.id}><a href={d.file} target="_blank" rel="noreferrer" download>{d.name} - Download</a></li>)}</ul>
