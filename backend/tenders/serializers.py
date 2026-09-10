@@ -8,7 +8,8 @@ class TenderItemSerializer(serializers.ModelSerializer):
 class TenderDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model=TenderDocument
-        fields=["id","name","file","uploaded_at"]
+        fields=["id","tender","name","file","uploaded_at"]
+        read_only_fields=["uploaded_at"]
 class TenderSerializer(serializers.ModelSerializer):
     items=TenderItemSerializer(many=True,read_only=True)
     documents=TenderDocumentSerializer(many=True,read_only=True)

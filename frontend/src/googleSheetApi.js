@@ -8,6 +8,13 @@ const asArray = (data, fallback = []) => {
   return fallback;
 };
 
+const errorMessage = (data, fallback) => {
+  if (typeof data === "string") return data;
+  if (data?.detail || data?.error || data?.message) return data.detail || data.error || data.message;
+  if (data && typeof data === "object") return Object.entries(data).map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(", ") : value}`).join("; ");
+  return fallback;
+};
+
 async function request(path, { method = "GET", token = null, body = undefined, params = {} } = {}) {
   const url = new URL(`${API_BASE}${path}`);
   Object.entries(params).forEach(([key, value]) => {
@@ -36,7 +43,7 @@ async function request(path, { method = "GET", token = null, body = undefined, p
   }
 
   if (!response.ok) {
-    const error = new Error(data.detail || data.error || data.message || "Request failed");
+    const error = new Error(errorMessage(data, "Request failed"));
     error.status = response.status;
     throw error;
   }
@@ -71,7 +78,7 @@ export const uploadTenderDocument = async (token, tenderId, file) => {
     throw error;
   }
   if (!response.ok) {
-    const error = new Error(data.detail || data.error || data.message || "Document upload failed");
+    const error = new Error(errorMessage(data, "Document upload failed"));
     error.status = response.status;
     throw error;
   }
