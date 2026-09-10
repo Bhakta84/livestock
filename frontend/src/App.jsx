@@ -1,0 +1,59 @@
+import React,{useEffect,useState} from "react";
+import * as api from "./googleSheetApi";
+
+function Login({onLogin}){const [register,setRegister]=useState(false),[f,setF]=useState({}),[err,setErr]=useState("");
+ const submit=async e=>{e.preventDefault();try{const x=register?await api.register(f):await api.login(f);onLogin(x)}catch(x){setErr(x.message)}};
+ return <main className="login"><section className="card"><h1>BLDCL e-Procurement</h1><p>{register?"Bidder Registration":"Bidder / Staff Login"}</p><form onSubmit={submit}>
+ {register&&<><input placeholder="Full name" required onChange={e=>setF({...f,name:e.target.value})}/><input placeholder="Company name" required onChange={e=>setF({...f,company:e.target.value})}/><input placeholder="Phone" onChange={e=>setF({...f,phone:e.target.value})}/></>}
+ <input type="text" placeholder="Email or username" required onChange={e=>setF({...f,email:e.target.value})}/><input type="password" placeholder="Password" required onChange={e=>setF({...f,password:e.target.value})}/>
+ <button>{register?"Register":"Login"}</button></form>{err&&<div className="error">{err}</div>}<button className="link" onClick={()=>setRegister(!register)}>{register?"Already registered? Login":"Create bidder account"}</button></section></main>}
+
+function AdminDashboard({token,onLogout}){
+ const [tenders,setTenders]=useState([]),[form,setForm]=useState({tender_id:"",title:"",category:"Goods",location:"",description:"",submission_deadline:"",opening_date:""}),[items,setItems]=useState([{description:"",unit:"",quantity:"",estimated_price:""}]),[file,setFile]=useState(null),[message,setMessage]=useState(""),[error,setError]=useState("");
+ const load=async()=>{try{setTenders(await api.getTenders(token))}catch(e){setError(e.message)}};
+ useEffect(()=>{load()},[]);
+ const updateForm=e=>setForm({...form,[e.target.name]:e.target.value});
+ const updateItem=(index,e)=>setItems(items.map((item,i)=>i===index?{...item,[e.target.name]:e.target.value}:item));
+ const create=async e=>{e.preventDefault();setError("");setMessage("");try{
+	 const tender=await api.createTender(token,{...form,submission_deadline:new Date(form.submission_deadline).toISOString(),opening_date:new Date(form.opening_date).toISOString()});
+	 for(const [index,item] of items.entries()) if(item.description) await api.createTenderItem(token,{...item,tender:tender.id,line_no:index+1});
+	 if(file) await api.uploadTenderDocument(token,tender.id,file);
+	 setMessage(`Tender ${tender.tender_id} saved as draft.`);setForm({tender_id:"",title:"",category:"Goods",location:"",description:"",submission_deadline:"",opening_date:""});setItems([{description:"",unit:"",quantity:"",estimated_price:""}]);setFile(null);await load();
+ }catch(e){setError(e.message)}};
+ const publish=async id=>{try{await api.publishTender(token,id);setMessage("Tender published successfully.");await load()}catch(e){setError(e.message)}};
+ return <><header><strong>BLDCL Admin Console</strong><span><button onClick={onLogout}>Logout</button></span></header><main className="wrap admin-grid"><section className="card"><h2>Create Tender</h2>{error&&<div className="error">{error}</div>}{message&&<div className="success">{message}</div>}<form onSubmit={create} className="admin-form">
+ <div className="form-grid"><input name="tender_id" placeholder="Tender ID" required value={form.tender_id} onChange={updateForm}/><input name="title" placeholder="Tender title" required value={form.title} onChange={updateForm}/><input name="category" placeholder="Category" required value={form.category} onChange={updateForm}/><input name="location" placeholder="Location" value={form.location} onChange={updateForm}/><label>Submission deadline<input name="submission_deadline" type="datetime-local" required value={form.submission_deadline} onChange={updateForm}/></label><label>Opening date<input name="opening_date" type="datetime-local" required value={form.opening_date} onChange={updateForm}/></label></div><textarea name="description" placeholder="Tender description" value={form.description} onChange={updateForm}/>
+ <h3>Priced Items</h3><div className="item-editor">{items.map((item,index)=><div className="item-row" key={index}><input name="description" placeholder="Item description" required value={item.description} onChange={e=>updateItem(index,e)}/><input name="unit" placeholder="Unit" value={item.unit} onChange={e=>updateItem(index,e)}/><input name="quantity" type="number" min="0" step="0.01" placeholder="Qty" required value={item.quantity} onChange={e=>updateItem(index,e)}/><input name="estimated_price" type="number" min="0" step="0.01" placeholder="Price" required value={item.estimated_price} onChange={e=>updateItem(index,e)}/><button type="button" className="danger" onClick={()=>setItems(items.filter((_,i)=>i!==index))}>Remove</button></div>)}</div><button type="button" className="secondary" onClick={()=>setItems([...items,{description:"",unit:"",quantity:"",estimated_price:""}])}>Add item</button>
+ <label className="file-field">Tender document<input type="file" onChange={e=>setFile(e.target.files[0]||null)}/></label><button type="submit">Save Tender Draft</button></form></section><section className="card"><h2>Managed Tenders</h2><table><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Items</th><th></th></tr></thead><tbody>{tenders.map(t=><tr key={t.id}><td>{t.tender_id}</td><td>{t.title}</td><td>{t.status}</td><td>{t.items?.length||0}</td><td>{t.status==="DRAFT"&&<button onClick={()=>publish(t.id)}>Publish</button>}</td></tr>)}</tbody></table></section></main></>;
+}
+
+function App(){
+ const [session,setSession]=useState(JSON.parse(localStorage.getItem("bldcl_session")||"null"));
+ const [tenders,setTenders]=useState([]),[selected,setSelected]=useState(null),[bid,setBid]=useState(null),[err,setErr]=useState("");
+ const token=session?.token, user=session?.user;
+ const load=async()=>{try{setTenders(await api.getTenders(token))}catch(e){if(e.status===401){localStorage.removeItem("bldcl_session");setSession(null);return}setErr(e.message)}};
+ useEffect(()=>{if(token)load()},[token]);
+ if(!session)return <Login onLogin={x=>{localStorage.setItem("bldcl_session",JSON.stringify(x));setSession(x)}}/>;
+ if(user?.role==="Admin"||user?.role==="Procurement Officer")return <AdminDashboard token={token} onLogout={()=>{localStorage.clear();setSession(null)}}/>;
+ const openTender=async t=>{try{const full=await api.getTender(token,t.id);setSelected(full);setBid(null)}catch(e){setErr(e.message)}};
+ const participate=async()=>{try{const b=await api.createBid(token,{tender_id:selected.id,total_amount:0});setBid(b)}catch(e){setErr(e.message)}};
+ return <><header><strong>BLDCL e-Procurement</strong><span>{user.name} · {user.role}<button onClick={()=>{localStorage.clear();setSession(null)}}>Logout</button></span></header>
+ <main className="wrap"><h2>Online Tendering Portal</h2>{err&&<div className="error">{err}</div>}
+ {!selected?<section className="card"><h3>Active Tenders</h3><table><thead><tr><th>Tender ID</th><th>Title</th><th>Category</th><th>Deadline</th><th>Status</th><th></th></tr></thead><tbody>{tenders.map(t=><tr key={t.id}><td>{t.tender_id}</td><td>{t.title}</td><td>{t.category}</td><td>{new Date(t.submission_deadline).toLocaleString()}</td><td>{t.status}</td><td><button onClick={()=>openTender(t)}>View</button></td></tr>)}</tbody></table></section>
+ :<TenderView tender={selected} bid={bid} token={token} onBack={()=>setSelected(null)} onParticipate={participate} onBid={setBid}/>}
+ </main></>}
+
+function TenderView({tender,bid,token,onBack,onParticipate,onBid}){
+ const [items,setItems]=useState(tender.boq?.items||[]),[rates,setRates]=useState({}),[files,setFiles]=useState([]),[msg,setMsg]=useState("");
+ const total=items.reduce((s,x)=>s+(Number(rates[x.id]||0)*Number(x.quantity||0)),0);
+ const makeBid=async()=>{try{await onParticipate()}catch(e){setMsg(e.message)}};
+ const save=async()=>{try{const b=await api.saveBidItems(token,{bid_id:bid.id,items:items.map(x=>({boq_item_id:x.id,quantity:x.quantity,rate:Number(rates[x.id]||0),amount:Number(rates[x.id]||0)*Number(x.quantity||0)}))});onBid(b);setMsg("BOQ saved")}catch(e){setMsg(e.message)}};
+ const upload=async e=>{const file=e.target.files[0];if(!file||!bid)return;const reader=new FileReader();reader.onload=async()=>{try{const d=await api.uploadDocument(token,{parent_type:"Bid",parent_id:bid.id,name:file.name,mimeType:file.type,base64:String(reader.result).split(",")[1]});setFiles([...files,d])}catch(x){setMsg(x.message)}};reader.readAsDataURL(file)};
+ const submit=async()=>{try{const b=await api.submitBid(token,bid.id);onBid(b);setMsg("Bid submitted successfully")}catch(e){setMsg(e.message)}};
+ return <section className="card"><button onClick={onBack}>← Back</button><h2>{tender.title}</h2><p><b>{tender.tender_id}</b> · {tender.category} · {tender.location}</p><p>{tender.description}</p><h3>Tender Documents</h3><ul>{(tender.documents||[]).map(d=><li key={d.id}><a href={d.drive_url} target="_blank">{d.name}</a></li>)}</ul>
+ {!bid?<button onClick={makeBid}>Participate in Tender</button>:<><h3>BOQ / Financial Bid</h3><table><thead><tr><th>Sl</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.map(x=><tr key={x.id}><td>{x.line_no}</td><td>{x.description}</td><td>{x.unit}</td><td>{x.quantity}</td><td><input type="number" disabled={bid.status!=="DRAFT"} value={rates[x.id]||""} onChange={e=>setRates({...rates,[x.id]:e.target.value})}/></td><td>{(Number(rates[x.id]||0)*Number(x.quantity||0)).toFixed(2)}</td></tr>)}</tbody></table><h3>Total: Nu. {total.toFixed(2)}</h3>
+ {bid.status==="DRAFT"&&<><button onClick={save}>Save BOQ</button><label className="upload">Upload Bid Document<input type="file" onChange={upload}/></label><button onClick={submit}>Submit Bid</button></>}
+ {bid.status==="SUBMITTED"&&<div className="success">Bid submitted: <b>{bid.reference}</b><br/>Submission time: {new Date(bid.submitted_at).toLocaleString()}</div>}</>}
+ {msg&&<div className="notice">{msg}</div>}</section>}
+
+export default App;
