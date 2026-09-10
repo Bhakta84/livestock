@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livestock Information Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐷🐔 Livestock Information Dashboard</h1>
+            <p class="subtitle">Pig and Chicken Egg Management System</p>
+        </header>
+
+        <!-- Real-time Statistics Section -->
+        <section class="stats-section">
+            <div class="stat-card pigs-card">
+                <h2>Total Pigs Today</h2>
+                <div class="stat-number" id="totalPigsToday">0</div>
+                <p class="stat-label">Added today</p>
+            </div>
+            <div class="stat-card eggs-card">
+                <h2>Total Eggs Today</h2>
+                <div class="stat-number" id="totalEggsToday">0</div>
+                <p class="stat-label">Collected today</p>
+            </div>
+            <div class="stat-card total-pigs-card">
+                <h2>Total Pigs</h2>
+                <div class="stat-number" id="totalPigs">0</div>
+                <p class="stat-label">All time</p>
+            </div>
+            <div class="stat-card total-eggs-card">
+                <h2>Total Eggs</h2>
+                <div class="stat-number" id="totalEggs">0</div>
+                <p class="stat-label">All time</p>
+            </div>
+        </section>
+
+        <!-- Data Entry Forms Section -->
+        <section class="forms-section">
+            <div class="form-container">
+                <h2>Add Pig Entry</h2>
+                <form id="pigForm">
+                    <div class="form-group">
+                        <label for="pigCount">Number of Pigs:</label>
+                        <input type="number" id="pigCount" min="1" placeholder="Enter pig count" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pigNotes">Notes:</label>
+                        <textarea id="pigNotes" placeholder="Add any notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Pigs</button>
+                </form>
+            </div>
+
+            <div class="form-container">
+                <h2>Add Egg Entry</h2>
+                <form id="eggForm">
+                    <div class="form-group">
+                        <label for="eggCount">Number of Eggs:</label>
+                        <input type="number" id="eggCount" min="1" placeholder="Enter egg count" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="eggNotes">Notes:</label>
+                        <textarea id="eggNotes" placeholder="Add any notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Add Eggs</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <div class="chart-container">
+                <h2>Daily Pig Count</h2>
+                <canvas id="pigChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>Daily Egg Collection</h2>
+                <canvas id="eggChart"></canvas>
+            </div>
+            <div class="chart-container full-width">
+                <h2>Weekly Comparison</h2>
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Historical Data Section -->
+        <section class="history-section">
+            <h2>Historical Data</h2>
+            <div class="tabs">
+                <button class="tab-button active" data-tab="pigHistory">Pig History</button>
+                <button class="tab-button" data-tab="eggHistory">Egg History</button>
+            </div>
+
+            <div id="pigHistory" class="tab-content active">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Count</th>
+                                <th>Notes</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pigHistoryTable">
+                            <!-- Data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="eggHistory" class="tab-content">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Count</th>
+                                <th>Notes</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eggHistoryTable">
+                            <!-- Data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Export Section -->
+        <section class="export-section">
+            <h2>Export Data</h2>
+            <button class="btn btn-info" onclick="exportToCSV()">📥 Export to CSV</button>
+            <button class="btn btn-warning" onclick="clearAllData()">🗑️ Clear All Data</button>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
