@@ -3,7 +3,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-change-me")
 DEBUG = os.getenv("DEBUG", "1") == "1"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if host.strip()]
 
 INSTALLED_APPS = [
     "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
@@ -40,7 +40,7 @@ LANGUAGE_CODE="en-us"; TIME_ZONE="Asia/Thimphu"; USE_I18N=True; USE_TZ=True
 STATIC_URL="static/"; STATIC_ROOT=BASE_DIR/"staticfiles"
 MEDIA_URL="/media/"; MEDIA_ROOT=BASE_DIR/"media"
 DEFAULT_AUTO_FIELD="django.db.models.BigAutoField"
-CORS_ALLOWED_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]
+CORS_ALLOWED_ORIGINS=[origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if origin.strip()]
 REST_FRAMEWORK={
  "DEFAULT_AUTHENTICATION_CLASSES":("rest_framework_simplejwt.authentication.JWTAuthentication",),
  "DEFAULT_PERMISSION_CLASSES":("rest_framework.permissions.IsAuthenticated",),
