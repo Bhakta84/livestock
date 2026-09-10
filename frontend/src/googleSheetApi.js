@@ -52,7 +52,22 @@ async function request(path, { method = "GET", token = null, body = undefined, p
   return data;
 }
 
-export const register = (payload) => request("/auth/register/", { method: "POST", body: payload });
+export const register = async (payload) => {
+  const form = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) form.append(key, value);
+  });
+  const response = await fetch(`${API_BASE}/auth/register/`, { method: "POST", body: form });
+  const text = await response.text();
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error(`Registration failed with HTTP ${response.status}.`); }
+  if (!response.ok) {
+    const error = new Error(errorMessage(data, "Registration failed"));
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+};
 export const login = (payload) => request("/auth/login/", { method: "POST", body: payload });
 
 export const getTenders = (token) => request("/tenders/", { token }).then((x) => asArray(x));

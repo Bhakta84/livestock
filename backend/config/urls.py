@@ -10,6 +10,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import FormParser, MultiPartParser
+from django.db import transaction
+from bids.models import BidderProfile
 
 
 def api_root(request):
@@ -29,10 +32,11 @@ def api_root(request):
 class AuthUserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
+    vendor_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "name", "role"]
+        fields = ["id", "username", "email", "name", "role", "vendor_name"]
 
     def get_name(self, obj):
         return (obj.get_full_name() or obj.username or obj.email).strip() or obj.email
@@ -49,6 +53,12 @@ class AuthUserSerializer(serializers.ModelSerializer):
         if obj.groups.filter(name="Approving Authority").exists():
             return "Approving Authority"
         return "Bidder"
+
+    def get_vendor_name(self, obj):
+        try:
+            return obj.bidder_profile.vendor_name
+        except BidderProfile.DoesNotExist:
+            return ""
 
 class AuthTokenMixin:
     def token_response(self, user):
@@ -78,29 +88,35 @@ class LoginView(AuthTokenMixin, APIView):
 class RegisterView(AuthTokenMixin, APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
         name = (request.data.get("name") or "").strip()
         email = (request.data.get("email") or "").strip()
         password = request.data.get("password") or ""
-        if not name or not email or not password:
-            return Response({"detail": "Name, email, and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        vendor_name = (request.data.get("vendor_name") or "").strip()
+        vendor_type = (request.data.get("vendor_type") or "").strip()
+        tpn_number = (request.data.get("tpn_number") or "").strip()
+        license_no = (request.data.get("license_no") or "").strip()
+        address_details = (request.data.get("address_details") or "").strip()
+        contact_details = (request.data.get("contact_details") or "").strip()
+        trade_license = request.FILES.get("trade_license")
+        terms_accepted = str(request.data.get("terms_accepted", "")).lower() in ["true", "1", "on"]
+        required = {"name": name, "email": email, "password": password, "vendor_name": vendor_name, "vendor_type": vendor_type, "tpn_number": tpn_number, "license_no": license_no, "address_details": address_details, "contact_details": contact_details}
+        missing = [field for field, value in required.items() if not value]
+        if missing or not trade_license or not terms_accepted:
+            return Response({"detail": "Complete all bidder registration fields, upload the trade license/certificate, and accept the terms and conditions.", "missing": missing}, status=status.HTTP_400_BAD_REQUEST)
         if User.objects.filter(email__iexact=email).exists() or User.objects.filter(username__iexact=email).exists():
             return Response({"detail": "A user with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
         parts = name.split(" ", 1)
         first_name = parts[0]
         last_name = parts[1] if len(parts) > 1 else ""
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-        )
-
-        bidder_group, _ = Group.objects.get_or_create(name="Bidder")
-        user.groups.add(bidder_group)
+        with transaction.atomic():
+            user = User.objects.create_user(username=email, email=email, password=password, first_name=first_name, last_name=last_name)
+            bidder_group, _ = Group.objects.get_or_create(name="Bidder")
+            user.groups.add(bidder_group)
+            BidderProfile.objects.create(user=user, vendor_name=vendor_name, vendor_type=vendor_type, tpn_number=tpn_number, license_no=license_no, trade_license=trade_license, address_details=address_details, contact_details=contact_details, terms_accepted=True)
         return Response(self.token_response(user), status=status.HTTP_201_CREATED)
 
 urlpatterns=[

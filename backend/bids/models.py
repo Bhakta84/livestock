@@ -3,6 +3,20 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from tenders.models import Tender
 
+class BidderProfile(models.Model):
+    user=models.OneToOneField(User,on_delete=models.CASCADE,related_name="bidder_profile")
+    vendor_name=models.CharField(max_length=255)
+    vendor_type=models.CharField(max_length=100)
+    tpn_number=models.CharField(max_length=100)
+    license_no=models.CharField(max_length=100)
+    trade_license=models.FileField(upload_to="bidder-registrations/%Y/%m/")
+    address_details=models.TextField()
+    contact_details=models.CharField(max_length=255)
+    terms_accepted=models.BooleanField(default=False)
+    submitted_at=models.DateTimeField(auto_now_add=True)
+
+    def __str__(self): return self.vendor_name
+
 class Bid(models.Model):
     STATUS=[("DRAFT","Draft"),("SUBMITTED","Submitted"),("WITHDRAWN","Withdrawn")]
     tender=models.ForeignKey(Tender,on_delete=models.PROTECT,related_name="bids")
