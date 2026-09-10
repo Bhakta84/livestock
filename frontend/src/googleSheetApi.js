@@ -61,7 +61,15 @@ export const uploadTenderDocument = async (token, tenderId, file) => {
     headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
-  const data = await response.json();
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    const error = new Error(`Document upload failed with HTTP ${response.status}. The server returned HTML instead of JSON.`);
+    error.status = response.status;
+    throw error;
+  }
   if (!response.ok) {
     const error = new Error(data.detail || data.error || data.message || "Document upload failed");
     error.status = response.status;

@@ -28,7 +28,7 @@ function AdminDashboard({token,onLogout}){
 }
 
 function App(){
- const [session,setSession]=useState(JSON.parse(localStorage.getItem("bldcl_session")||"null"));
+ const [session,setSession]=useState(()=>{try{return JSON.parse(localStorage.getItem("bldcl_session")||"null")}catch{localStorage.removeItem("bldcl_session");return null}});
  const [tenders,setTenders]=useState([]),[selected,setSelected]=useState(null),[bid,setBid]=useState(null),[err,setErr]=useState("");
  const token=session?.token, user=session?.user;
  const load=async()=>{try{setTenders(await api.getTenders(token))}catch(e){if(e.status===401){localStorage.removeItem("bldcl_session");setSession(null);return}setErr(e.message)}};
