@@ -74,6 +74,9 @@ export const getTenders = (token) => request("/tenders/", { token }).then((x) =>
 export const getTender = (token, id) => request(`/tenders/${id}/`, { token });
 export const getDocuments = (token, parent_id) => request(`/tenders/documents/`, { token, params: { tender: parent_id } });
 export const createTenderItem = (token, payload) => request("/tenders/items/", { method: "POST", token, body: payload });
+export const updateTender = (token, id, payload) => request(`/tenders/${id}/`, { method: "PATCH", token, body: payload });
+export const updateTenderItem = (token, id, payload) => request(`/tenders/items/${id}/`, { method: "PATCH", token, body: payload });
+export const deleteTenderItem = (token, id) => request(`/tenders/items/${id}/`, { method: "DELETE", token });
 export const uploadTenderDocument = async (token, tenderId, file) => {
   const form = new FormData();
   form.append("tender", String(tenderId));
