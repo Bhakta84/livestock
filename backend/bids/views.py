@@ -1,5 +1,7 @@
 import secrets
 from rest_framework import viewsets,permissions
+from rest_framework.exceptions import ValidationError
+from django.db import IntegrityError
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Bid,BidDocument
@@ -15,10 +17,15 @@ class BidViewSet(viewsets.ModelViewSet):
     def perform_create(self,serializer):
         tender=serializer.validated_data["tender"]
         if tender.effective_status()!="OPEN":
-            from rest_framework.exceptions import ValidationError
             raise ValidationError("Tender is closed; bids cannot be created.")
+        existing=Bid.objects.filter(tender=tender,bidder=self.request.user).first()
+        if existing:
+            raise ValidationError({"detail": "You already have a bid for this tender.", "bid_id": existing.id})
         ref=f"BID-{tender.tender_id.replace('/','-')}-{secrets.token_hex(4).upper()}"
-        serializer.save(bidder=self.request.user,reference=ref)
+        try:
+            serializer.save(bidder=self.request.user,reference=ref)
+        except IntegrityError:
+            raise ValidationError("You already have a bid for this tender.")
     @action(detail=True,methods=["post"])
     def submit(self,request,pk=None):
         bid=self.get_object()

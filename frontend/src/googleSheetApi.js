@@ -45,6 +45,7 @@ async function request(path, { method = "GET", token = null, body = undefined, p
   if (!response.ok) {
     const error = new Error(errorMessage(data, "Request failed"));
     error.status = response.status;
+    error.bidId = data?.bid_id;
     throw error;
   }
 
@@ -86,6 +87,7 @@ export const uploadTenderDocument = async (token, tenderId, file) => {
 };
 export const getBOQ = (token, tender_id) => request(`/tenders/${tender_id}/`, { token });
 export const getBids = (token) => request("/bids/", { token }).then((x) => asArray(x));
+export const getBid = (token, id) => request(`/bids/${id}/`, { token });
 export const createBid = (token, payload) => {
   const requestBody = { ...payload };
   if (requestBody.tender_id && !requestBody.tender) requestBody.tender = requestBody.tender_id;

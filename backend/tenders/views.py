@@ -1,4 +1,6 @@
 from rest_framework import viewsets, permissions
+from rest_framework.exceptions import ValidationError
+from django.db import IntegrityError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,7 +17,10 @@ class TenderViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         return [StaffTenderPermission()]
     def perform_create(self,serializer):
-        serializer.save(created_by=self.request.user)
+        try:
+            serializer.save(created_by=self.request.user)
+        except IntegrityError:
+            raise ValidationError({"tender_id": "A tender with this ID already exists."})
     @action(detail=True,methods=["post"],permission_classes=[StaffTenderPermission])
     def publish(self,request,pk=None):
         tender=self.get_object()

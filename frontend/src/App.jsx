@@ -36,7 +36,7 @@ function App(){
  if(!session)return <Login onLogin={x=>{localStorage.setItem("bldcl_session",JSON.stringify(x));setSession(x)}}/>;
  if(user?.role==="Admin"||user?.role==="Procurement Officer")return <AdminDashboard token={token} onLogout={()=>{localStorage.clear();setSession(null)}}/>;
  const openTender=async t=>{try{const full=await api.getTender(token,t.id);setSelected(full);setBid(null)}catch(e){setErr(e.message)}};
- const participate=async()=>{try{const b=await api.createBid(token,{tender_id:selected.id,total_amount:0});setBid(b)}catch(e){setErr(e.message)}};
+ const participate=async()=>{try{const b=await api.createBid(token,{tender_id:selected.id,total_amount:0});setBid(b)}catch(e){if(e.bidId){setBid(await api.getBid(token,e.bidId));return}setErr(e.message)}};
  return <><header><strong>BLDCL e-Procurement</strong><span>{user.name} · {user.role}<button onClick={()=>{localStorage.clear();setSession(null)}}>Logout</button></span></header>
  <main className="wrap"><h2>Online Tendering Portal</h2>{err&&<div className="error">{err}</div>}
  {!selected?<section className="card"><h3>Active Tenders</h3><table><thead><tr><th>Tender ID</th><th>Title</th><th>Category</th><th>Deadline</th><th>Status</th><th></th></tr></thead><tbody>{tenders.map(t=><tr key={t.id}><td>{t.tender_id}</td><td>{t.title}</td><td>{t.category}</td><td>{new Date(t.submission_deadline).toLocaleString()}</td><td>{t.status}</td><td><button onClick={()=>openTender(t)}>View</button></td></tr>)}</tbody></table></section>
